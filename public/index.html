@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>🎲 LOTO</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════
+   RESET & ROOT
+══════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Nunito',sans-serif;}
+
+:root{
+  --bg:        #f0f4ff;
+  --bg2:       #e6ecfa;
+  --surface:   #ffffff;
+  --surface2:  #f5f7ff;
+  --border:    #dde3f5;
+  --text:      #1a1e3a;
+  --muted:     #7880a0;
+  --accent:    #4361ee;
+  --accent2:   #f72585;
+  --green:     #06d6a0;
+  --gold:      #ffb703;
+  --orange:    #fb8500;
+  --shadow:    0 2px 12px rgba(67,97,238,.10);
+  --radius:    14px;
+}
+
+/* ══════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════ */
+.app{
+  width:100%;max-width:440px;height:100dvh;margin:0 auto;
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--bg);position:relative;
+}
+
+/* URL param support handled in JS */
+.app.hide-bar    .topbar  { display:none !important; }
+.app.hide-nav    .bottom-nav { display:none !important; }
+
+/* ══════════════════════════════════════════
+   TOPBAR
+══════════════════════════════════════════ */
+.topbar{
+  height:52px;flex-shrink:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px;
+  background:var(--surface);border-bottom:1.5px solid var(--border);
+  box-shadow:0 1px 8px rgba(67,97,238,.06);
+}
+.logo{
+  font-family:'Bebas Neue',cursive;font-size:1.65rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.conn-pill{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);
+  font-size:10px;font-weight:800;color:var(--muted);background:var(--surface2);
+}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:#ccc;transition:.3s;}
+.conn-dot.on{background:#06d6a0;box-shadow:0 0 6px #06d6a0;}
+.phase-badge{
+  padding:4px 10px;border-radius:20px;font-size:10px;font-weight:900;letter-spacing:.5px;
+  background:var(--surface2);border:1.5px solid var(--border);color:var(--muted);
+}
+.phase-badge.playing{background:rgba(6,214,160,.1);border-color:rgba(6,214,160,.4);color:#05a37a;}
+.phase-badge.finished{background:rgba(247,37,133,.1);border-color:rgba(247,37,133,.3);color:var(--accent2);}
+
+/* ══════════════════════════════════════════
+   DRAW ZONE — top ball display
+══════════════════════════════════════════ */
+.draw-zone{
+  flex-shrink:0;background:var(--surface);
+  border-bottom:1.5px solid var(--border);
+  padding:10px 14px;display:flex;align-items:center;gap:12px;
+  box-shadow:var(--shadow);z-index:10;
+}
+
+/* ── 3D Ball ── */
+.ball-wrap{width:68px;height:68px;flex-shrink:0;position:relative;}
+.ball-3d{
+  width:68px;height:68px;border-radius:50%;
+  background:radial-gradient(circle at 38% 30%, #fff5b0 0%, var(--gold) 35%, #e07b00 70%, #9a4f00 100%);
+  box-shadow:
+    inset -7px -9px 18px rgba(0,0,0,.25),
+    inset 5px 6px 14px rgba(255,255,255,.65),
+    0 6px 20px rgba(255,183,3,.4),
+    0 2px 6px rgba(0,0,0,.1);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',cursive;font-size:1.9rem;
+  color:#3d2000;text-shadow:0 1px 2px rgba(255,210,0,.4);
+  position:relative;user-select:none;
+}
+.ball-3d::before{
+  content:'';position:absolute;top:10px;left:14px;
+  width:20px;height:10px;border-radius:50%;
+  background:rgba(255,255,255,.45);transform:rotate(-28deg);filter:blur(2px);
+}
+.ball-3d.idle{
+  background:radial-gradient(circle at 38% 30%,#fafafa,#d0d0d0 40%,#aaa 70%,#888 100%);
+  box-shadow:inset -6px -8px 16px rgba(0,0,0,.2),inset 4px 5px 10px rgba(255,255,255,.7),0 4px 12px rgba(0,0,0,.1);
+  color:#888;
+}
+.ball-3d.pop{animation:ballPop .45s cubic-bezier(.175,.885,.32,1.275) forwards;}
+@keyframes ballPop{
+  0%{transform:scale(1);}
+  45%{transform:scale(1.38) rotate(8deg);box-shadow:inset -7px -9px 18px rgba(0,0,0,.2),0 8px 30px rgba(255,183,3,.7);}
+  100%{transform:scale(1) rotate(0);}
+}
+
+.draw-right{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;}
+.draw-label{font-size:9px;font-weight:900;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.draw-recent{display:flex;flex-wrap:wrap;gap:4px;max-height:48px;overflow:hidden;}
+.mini-ball{
+  width:26px;height:26px;border-radius:50%;
+  background:radial-gradient(circle at 38% 30%,#fff5b0,var(--gold) 45%,#e07b00 100%);
+  box-shadow:inset -2px -3px 5px rgba(0,0,0,.18),inset 2px 2px 4px rgba(255,255,255,.6),0 1px 4px rgba(255,183,3,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',cursive;font-size:.72rem;color:#3d2000;
+  flex-shrink:0;
+}
+.mini-ball.newest{box-shadow:inset -2px -3px 5px rgba(0,0,0,.2),0 0 8px rgba(255,183,3,.7);}
+
+/* ══════════════════════════════════════════
+   BONUS BANNER
+══════════════════════════════════════════ */
+#bonusBanner{
+  flex-shrink:0;overflow:hidden;max-height:0;transition:max-height .35s ease;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:11px;font-weight:900;color:#fff;letter-spacing:.5px;
+  text-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+#bonusBanner.show{max-height:36px;}
+#bonusBanner span{padding:8px 0;}
+
+/* ══════════════════════════════════════════
+   PLAYERS BAR
+══════════════════════════════════════════ */
+.players-bar{
+  flex-shrink:0;padding:6px 12px;
+  display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
+  background:var(--surface2);border-bottom:1px solid var(--border);
+}
+.players-bar::-webkit-scrollbar{display:none;}
+.p-chip{
+  display:flex;align-items:center;gap:5px;flex-shrink:0;
+  padding:4px 10px 4px 6px;border-radius:20px;
+  border:1.5px solid var(--border);background:var(--surface);
+  font-size:11px;font-weight:800;color:var(--text);
+  transition:all .2s;
+}
+.p-chip.spectator{opacity:.45;text-decoration:line-through;}
+.p-chip.winner{border-color:var(--gold);background:rgba(255,183,3,.08);}
+.p-av{
+  width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:900;color:#fff;flex-shrink:0;
+}
+.p-rank{
+  font-size:9px;font-weight:900;padding:1px 5px;border-radius:8px;
+  background:var(--gold);color:#3d2000;margin-left:2px;
+}
+
+/* ══════════════════════════════════════════
+   SCROLL — TICKETS
+══════════════════════════════════════════ */
+.scroll-area{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:10px 12px 8px;display:flex;flex-direction:column;gap:10px;
+  background:var(--bg);
+}
+.scroll-area::-webkit-scrollbar{width:3px;}
+.scroll-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── TICKET CARD ── */
+.ticket-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:12px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden;
+  transition:border-color .3s, box-shadow .3s;
+}
+.ticket-card.has-win{
+  border-color:rgba(6,214,160,.5);
+  box-shadow:0 0 18px rgba(6,214,160,.2),var(--shadow);
+}
+.ticket-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
+.ticket-lbl{font-family:'Bebas Neue',cursive;font-size:.95rem;letter-spacing:2px;color:var(--muted);}
+.row-dots{display:flex;gap:3px;}
+.row-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--border);transition:all .3s;
+}
+.row-dot.done{background:var(--green);box-shadow:0 0 5px rgba(6,214,160,.6);}
+
+/* ── TICKET GRID ── */
+.ticket-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
+}
+
+/* ── CELL ── */
+.cell{
+  aspect-ratio:1;border-radius:9px;
+  border:1.5px solid var(--border);
+  background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--muted);
+  cursor:default;position:relative;overflow:hidden;
+  transition:border-color .2s,background .2s,color .2s;
+  user-select:none;-webkit-user-select:none;
+}
+/* drawable — top çekilmiş, taş konabilir */
+.cell.drawable{
+  border-color:rgba(67,97,238,.3);
+  background:rgba(67,97,238,.05);
+  color:var(--accent);cursor:pointer;
+}
+.cell.drawable:active{transform:scale(.9);}
+/* marked — taş konmuş */
+.cell.marked{
+  border-color:rgba(6,214,160,.4);
+  background:rgba(6,214,160,.06);
+  cursor:pointer;
+}
+.cell.marked:active{transform:scale(.9);}
+/* win-row */
+.cell.win-row{
+  border-color:rgba(255,183,3,.7);
+  background:rgba(255,183,3,.1);
+  animation:cellGlow 1.2s ease-in-out infinite alternate;
+}
+@keyframes cellGlow{
+  from{box-shadow:0 0 4px rgba(255,183,3,.3);}
+  to{box-shadow:0 0 14px rgba(255,183,3,.8);}
+}
+/* locked — top çekilmedi, taş konulamaz */
+.cell.locked{opacity:.5;cursor:not-allowed;}
+
+/* ── 3D STONE ── */
+.stone{
+  position:absolute;inset:0;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',cursive;font-size:1.1rem;
+  animation:stoneIn .3s cubic-bezier(.175,.885,.32,1.275) forwards;
+}
+@keyframes stoneIn{
+  from{transform:scale(0) translateY(-8px);opacity:0;}
+  80%{transform:scale(1.12);opacity:1;}
+  to{transform:scale(1);opacity:1;}
+}
+.stone.remove{animation:stoneOut .18s ease forwards;}
+@keyframes stoneOut{to{transform:scale(0);opacity:0;}}
+
+/* stone colours per ticket index */
+.stone-0{
+  background:radial-gradient(circle at 38% 32%,#c3f7e0,var(--green) 40%,#04a57c 70%,#027a5b 100%);
+  box-shadow:inset -3px -4px 8px rgba(0,0,0,.2),inset 2px 2px 5px rgba(255,255,255,.6),0 2px 8px rgba(6,214,160,.4);
+  color:#fff;text-shadow:0 1px 2px rgba(0,80,50,.4);
+}
+.stone-1{
+  background:radial-gradient(circle at 38% 32%,#d0e8ff,#4895ef 40%,#1b6ab0 70%,#0d4a80 100%);
+  box-shadow:inset -3px -4px 8px rgba(0,0,0,.2),inset 2px 2px 5px rgba(255,255,255,.5),0 2px 8px rgba(72,149,239,.4);
+  color:#fff;text-shadow:0 1px 2px rgba(0,40,100,.4);
+}
+.stone-2{
+  background:radial-gradient(circle at 38% 32%,#ffd6ec,var(--accent2) 40%,#b0175e 70%,#7a0f41 100%);
+  box-shadow:inset -3px -4px 8px rgba(0,0,0,.2),inset 2px 2px 5px rgba(255,255,255,.5),0 2px 8px rgba(247,37,133,.4);
+  color:#fff;text-shadow:0 1px 2px rgba(100,0,50,.4);
+}
+
+/* win-row stone → gold */
+.cell.win-row .stone{
+  background:radial-gradient(circle at 38% 32%,#fff5b0,var(--gold) 40%,#c87800 70%,#8a5000 100%);
+  box-shadow:inset -3px -4px 8px rgba(0,0,0,.2),0 2px 10px rgba(255,183,3,.6);
+  color:#3d2000;text-shadow:none;
+}
+
+/* ── SPECTATOR OVERLAY ON TICKET ── */
+.ticket-spectator-overlay{
+  position:absolute;inset:0;border-radius:var(--radius);
+  background:rgba(255,255,255,.7);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;
+  font-size:13px;font-weight:900;color:var(--muted);pointer-events:none;
+}
+
+/* ══════════════════════════════════════════
+   PARTICLES
+══════════════════════════════════════════ */
+.ptcl{
+  position:fixed;width:7px;height:7px;border-radius:50%;
+  pointer-events:none;z-index:9999;
+  animation:ptclFly var(--dur,.5s) ease-out forwards;
+}
+@keyframes ptclFly{
+  from{transform:translate(0,0) scale(1);opacity:1;}
+  to{transform:translate(var(--tx,0),var(--ty,-60px)) scale(0);opacity:0;}
+}
+
+/* ══════════════════════════════════════════
+   CONTROLS
+══════════════════════════════════════════ */
+.controls{
+  flex-shrink:0;background:var(--surface);
+  border-top:1.5px solid var(--border);
+  padding:8px 12px;display:flex;gap:8px;align-items:center;
+  box-shadow:0 -2px 12px rgba(67,97,238,.06);z-index:50;
+}
+.ready-txt{flex:1;font-size:11px;font-weight:700;color:var(--muted);}
+.ready-txt strong{color:var(--text);}
+
+.btn{
+  border:none;border-radius:22px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:13px;
+  padding:10px 20px;transition:all .15s;display:flex;align-items:center;gap:6px;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.93);}
+.btn-ready{
+  flex:1;
+  background:linear-gradient(135deg,var(--green),#04a57c);
+  color:#fff;box-shadow:0 4px 14px rgba(6,214,160,.35);
+  animation:readyPulse 1.6s ease-in-out infinite alternate;
+}
+@keyframes readyPulse{
+  from{box-shadow:0 4px 14px rgba(6,214,160,.2);}
+  to{box-shadow:0 5px 24px rgba(6,214,160,.65);}
+}
+.btn-ready.done{background:var(--surface2);color:var(--muted);border:1.5px solid var(--border);animation:none;box-shadow:none;cursor:default;}
+.btn-join{
+  flex:1;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;box-shadow:0 4px 14px rgba(67,97,238,.3);
+}
+.btn-new{
+  background:linear-gradient(135deg,var(--orange),var(--accent2));
+  color:#fff;box-shadow:0 4px 12px rgba(247,37,133,.25);
+}
+
+/* ══════════════════════════════════════════
+   CHAT
+══════════════════════════════════════════ */
+.chat{
+  flex-shrink:0;background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;flex-direction:column;
+  max-height:130px;
+}
+.chat-msgs{
+  flex:1;overflow-y:auto;padding:5px 12px;
+  display:flex;flex-direction:column;gap:3px;
+  max-height:90px;
+}
+.chat-msgs::-webkit-scrollbar{width:2px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--border);}
+.chat-row{display:flex;gap:5px;font-size:11px;animation:msgIn .18s ease;}
+@keyframes msgIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.chat-row .cn{font-weight:900;color:var(--c,var(--accent));white-space:nowrap;}
+.chat-row .ct{color:var(--text);line-height:1.4;}
+.chat-row.sys .cn{color:var(--accent);}
+.chat-row.sys .ct{color:var(--muted);}
+.chat-inp-row{
+  display:flex;gap:6px;padding:5px 10px 6px;flex-shrink:0;
+}
+.chat-inp{
+  flex:1;background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:10px;padding:7px 12px;color:var(--text);
+  font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;outline:none;
+}
+.chat-inp:focus{border-color:rgba(67,97,238,.4);}
+.chat-send{
+  background:var(--accent);border:none;border-radius:10px;
+  padding:7px 14px;color:#fff;font-weight:900;font-size:13px;cursor:pointer;
+}
+
+/* ══════════════════════════════════════════
+   OVERLAYS
+══════════════════════════════════════════ */
+.overlay{
+  position:absolute;inset:0;z-index:400;
+  background:rgba(240,244,255,.92);backdrop-filter:blur(12px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;gap:16px;animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.ov-title{
+  font-family:'Bebas Neue',cursive;font-size:2.4rem;letter-spacing:4px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;
+}
+.ov-sub{font-size:12px;color:var(--muted);text-align:center;margin-top:-10px;}
+.join-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:20px;padding:20px;width:100%;max-width:340px;
+  display:flex;flex-direction:column;gap:14px;
+  box-shadow:var(--shadow);
+}
+.fl{font-size:10px;font-weight:900;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.fi{
+  width:100%;background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:11px;padding:11px 14px;color:var(--text);
+  font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;outline:none;
+}
+.fi:focus{border-color:rgba(67,97,238,.4);}
+.tpick{display:flex;gap:8px;}
+.topt{
+  flex:1;padding:10px 0;border-radius:11px;
+  border:1.5px solid var(--border);background:var(--surface2);
+  font-family:'Bebas Neue',cursive;font-size:1.2rem;color:var(--muted);
+  cursor:pointer;text-align:center;transition:all .2s;
+}
+.topt.sel{background:rgba(67,97,238,.08);border-color:rgba(67,97,238,.4);color:var(--accent);}
+
+/* ── WIN / FINISHED overlay ── */
+#finishOverlay{display:none;}
+#finishOverlay.show{display:flex;}
+.podium{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:20px;padding:20px;width:100%;max-width:340px;
+  display:flex;flex-direction:column;gap:10px;
+  box-shadow:var(--shadow);max-height:60vh;overflow-y:auto;
+}
+.podium-title{
+  font-family:'Bebas Neue',cursive;font-size:1.4rem;letter-spacing:3px;
+  color:var(--text);text-align:center;
+}
+.podium-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:11px;background:var(--surface2);
+  border:1.5px solid var(--border);
+}
+.podium-num{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',cursive;font-size:1rem;color:#fff;flex-shrink:0;
+}
+.podium-num.r1{background:linear-gradient(135deg,#ffd700,#e07b00);}
+.podium-num.r2{background:linear-gradient(135deg,#c0c0c0,#888);}
+.podium-num.r3{background:linear-gradient(135deg,#cd7f32,#8b4513);}
+.podium-num.rn{background:var(--accent);}
+.podium-name{flex:1;font-weight:800;font-size:14px;color:var(--text);}
+
+/* ── Spectator banner ── */
+.spectator-mode{
+  background:rgba(67,97,238,.07);border:1.5px solid rgba(67,97,238,.2);
+  border-radius:11px;padding:8px 14px;text-align:center;
+  font-size:12px;font-weight:800;color:var(--accent);
+  display:none;
+}
+.spectator-mode.show{display:block;}
+
+/* ══════════════════════════════════════════
+   CANVAS + TOAST
+══════════════════════════════════════════ */
+#fwCanvas{position:absolute;inset:0;z-index:390;pointer-events:none;}
+#toast{
+  position:absolute;bottom:148px;left:50%;transform:translateX(-50%) translateY(12px);
+  background:var(--text);border-radius:12px;padding:8px 16px;
+  font-size:12px;font-weight:800;color:#fff;z-index:600;white-space:nowrap;
+  opacity:0;pointer-events:none;transition:all .28s;box-shadow:0 4px 16px rgba(26,30,58,.2);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <canvas id="fwCanvas"></canvas>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo">🎲 LOTO</div>
+    <div class="topbar-right">
+      <div class="phase-badge" id="phaseBadge">Lobi</div>
+      <div class="conn-pill">
+        <div class="conn-dot" id="connDot"></div>
+        <span id="connTxt">...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAW ZONE -->
+  <div class="draw-zone">
+    <div class="ball-wrap">
+      <div class="ball-3d idle" id="mainBall">?</div>
+    </div>
+    <div class="draw-right">
+      <div class="draw-label">Çekilen Toplar</div>
+      <div class="draw-recent" id="drawRecent"></div>
+    </div>
+  </div>
+
+  <!-- BONUS BANNER -->
+  <div id="bonusBanner"><span id="bonusTxt"></span></div>
+
+  <!-- PLAYERS BAR -->
+  <div class="players-bar" id="playersBar"></div>
+
+  <!-- SPECTATOR NOTICE -->
+  <div class="spectator-mode" id="specBanner" style="margin:6px 12px 0;">
+    👁️ İzleyici Modundasın — Bir sırayı tamamladın!
+  </div>
+
+  <!-- TICKETS SCROLL -->
+  <div class="scroll-area" id="scrollArea">
+    <div id="emptyHint" style="text-align:center;color:var(--muted);font-size:12px;padding:30px 0;">
+      Katılmak için aşağıdaki butona bas
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls" id="controlsBar">
+    <div class="ready-txt">Hazır: <strong id="readyTxt">0/0</strong></div>
+    <button class="btn btn-ready" id="readyBtn" disabled onclick="doReady()">Hazırım!</button>
+    <button class="btn btn-join" id="joinBtn" onclick="openJoin()">Katıl →</button>
+    <button class="btn btn-new" id="newBtn" style="display:none" onclick="doNewGame()">🔄 Yeni</button>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat">
+    <div class="chat-msgs" id="chatMsgs"></div>
+    <div class="chat-inp-row">
+      <input class="chat-inp" id="chatInp" placeholder="Mesaj..." maxlength="150"
+        onkeydown="if(event.key==='Enter')doChat()"/>
+      <button class="chat-send" onclick="doChat()">↑</button>
+    </div>
+  </div>
+
+  <!-- JOIN OVERLAY -->
+  <div class="overlay" id="joinOverlay">
+    <div class="ov-title">LOTO</div>
+    <div class="ov-sub">0 → 101 · 2 → 12 oyuncu</div>
+    <div class="join-card">
+      <div>
+        <div class="fl">Adın</div>
+        <input class="fi" id="nameInp" placeholder="Adını yaz..." maxlength="18"
+          onkeydown="if(event.key==='Enter')doJoin()"/>
+      </div>
+      <div>
+        <div class="fl">Bilet Sayısı</div>
+        <div class="tpick">
+          <div class="topt sel" data-n="1" onclick="pickTicket(1,this)">1 Bilet</div>
+          <div class="topt"     data-n="2" onclick="pickTicket(2,this)">2 Bilet</div>
+          <div class="topt"     data-n="3" onclick="pickTicket(3,this)">3 Bilet</div>
+        </div>
+      </div>
+      <button class="btn btn-join" style="justify-content:center" onclick="doJoin()">Katıl &amp; Bilet Al</button>
+    </div>
+  </div>
+
+  <!-- FINISH OVERLAY -->
+  <div class="overlay" id="finishOverlay">
+    <div class="ov-title">🏆 SONUÇ</div>
+    <div class="podium" id="podiumList"></div>
+    <button class="btn btn-new" style="padding:13px 36px;font-size:14px" onclick="doNewGame()">🔄 Yeni Oyun</button>
+  </div>
+
+  <div id="toast"></div>
+</div><!-- .app -->
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+'use strict';
+
+// ══════════════════════════════════════════
+//  URL PARAMS
+// ══════════════════════════════════════════
+(function(){
+  const p = new URLSearchParams(location.search);
+  const app = document.getElementById('app');
+  if (p.get('showBar') === '0')            app.classList.add('hide-bar');
+  if (p.get('showNavigation') === 'false') app.classList.add('hide-nav');
+  const hp = parseFloat(p.get('heightPercent'));
+  if (hp > 0 && hp <= 100)                 app.style.height = hp + 'dvh';
+})();
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let myName      = '';
+let myTickets   = [];          // array of 3x5 grids
+let myMarks     = {};          // { "0":[], "1":[], "2":[] }
+let ticketCount = 1;
+let gamePhase   = 'lobby';
+let drawnBalls  = [];
+let players     = {};
+let amSpectator = false;
+let isReady     = false;
+let mySocketId  = '';
+
+// ══════════════════════════════════════════
+//  AUDIO (Web Audio API — no file needed)
+// ══════════════════════════════════════════
+let _ac;
+function getAC(){ if(!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)(); return _ac; }
+
+function tone(freq, dur, type='sine', vol=0.25){
+  try{
+    const a=getAC(), o=a.createOscillator(), g=a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime+dur);
+    o.start(); o.stop(a.currentTime+dur);
+  }catch(e){}
+}
+
+function sfxDraw(){
+  tone(330,.06,'square',.12);
+  setTimeout(()=>tone(550,.08,'sine',.18),70);
+  setTimeout(()=>tone(880,.12,'sine',.2),150);
+}
+function sfxMark(){
+  tone(523,.05,'sine',.18);
+  setTimeout(()=>tone(659,.08,'sine',.2),55);
+}
+function sfxWin(){
+  [523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>tone(f,.18,'sine',.25),i*110));
+}
+function sfxError(){
+  tone(220,.1,'sawtooth',.18);
+  setTimeout(()=>tone(180,.14,'sawtooth',.14),110);
+}
+
+// ══════════════════════════════════════════
+//  SPEECH
+// ══════════════════════════════════════════
+function speak(txt){
+  if(!window.speechSynthesis) return;
+  const u=new SpeechSynthesisUtterance(String(txt));
+  u.lang='tr-TR'; u.rate=0.88; u.pitch=1.05;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+// ══════════════════════════════════════════
+//  SOCKET
+// ══════════════════════════════════════════
+const socket = io();
+
+socket.on('connect', ()=>{
+  mySocketId = socket.id;
+  $('connDot').className = 'conn-dot on';
+  $('connTxt').textContent = 'Bağlı';
+});
+socket.on('disconnect', ()=>{
+  $('connDot').className = 'conn-dot';
+  $('connTxt').textContent = 'Bağlantı kesildi';
+});
+
+socket.on('syncState', st => {
+  gamePhase  = st.phase;
+  drawnBalls = st.drawnBalls  || [];
+  players    = st.players     || {};
+  renderPhaseBadge(st.phase);
+  renderPlayersBar(st.players);
+  $('readyTxt').textContent = st.readyCount+'/'+st.totalCount;
+  if(st.lastBall != null) setBall(st.lastBall, false);
+  renderRecentBalls(drawnBalls);
+  if(st.bonus && st.bonus.label) showBonus(st.bonus);
+  if(myTickets.length) renderTickets();
+  // Re-evaluate my spectator status from server
+  if(players[socket.id]) amSpectator = players[socket.id].spectator;
+  updateSpectatorUI();
+});
+
+socket.on('joinedOk', ({tickets, marks})=>{
+  myTickets = tickets;
+  myMarks   = marks;
+  $('emptyHint').style.display = 'none';
+  $('joinBtn').style.display   = 'none';
+  $('readyBtn').disabled       = false;
+  renderTickets();
+  toast('🎟️ Biletlerin hazır!');
+});
+
+socket.on('joinError', msg => toast('⚠️ '+msg));
+socket.on('markErr',   msg => { sfxError(); toast('🚫 '+msg); });
+
+socket.on('playerUpdate', st => {
+  players = st.players || {};
+  renderPlayersBar(players);
+  $('readyTxt').textContent = st.readyCount+'/'+st.totalCount;
+  if(st.joined) addChat('🎮', st.joined+' katıldı!', true);
+  if(st.left)   addChat('👋', st.left+' ayrıldı', true);
+});
+
+socket.on('readyUpdate', ({readyCount, totalCount})=>{
+  $('readyTxt').textContent = readyCount+'/'+totalCount;
+});
+
+socket.on('gameStarted', ({bonus})=>{
+  gamePhase = 'playing';
+  renderPhaseBadge('playing');
+  if(bonus && bonus.label) showBonus(bonus);
+  speak('Oyun başlıyor!');
+  toast('🎲 Oyun Başladı!');
+  addChat('🎮','Oyun başladı!',true);
+});
+
+socket.on('ballsDrawn', ({balls, lastBall, drawnBalls:db})=>{
+  drawnBalls = db;
+  setBall(lastBall, true);
+  renderRecentBalls(db);
+  sfxDraw();
+  speak(String(lastBall));
+  if(balls.length > 1) setTimeout(()=>speak(String(balls[0])), 900);
+  renderTickets();
+});
+
+socket.on('marked', ({ti, marks})=>{
+  myMarks[String(ti)] = marks;
+  renderTickets();
+});
+
+socket.on('playerWon', ({sid, name, rank, activeLeft})=>{
+  const rankLabels = {1:'🥇 1.',2:'🥈 2.',3:'🥉 3.'};
+  const lbl = rankLabels[rank] || rank+'.';
+  addChat('🏆', name+' '+lbl+' oldu! ('+activeLeft+' aktif kaldı)', true);
+  sfxWin();
+  renderPlayersBar(players);
+
+  // If it's me
+  if(sid === socket.id){
+    amSpectator = true;
+    updateSpectatorUI();
+    if(players[socket.id]) players[socket.id].spectator = true;
+    renderTickets();
+    fireworks();
+    toast('🏆 '+lbl+' Sıraya girdin! Artık izleyicisin.');
+  }
+});
+
+socket.on('gameFinished', ({players: finalPlayers})=>{
+  gamePhase = 'finished';
+  renderPhaseBadge('finished');
+  players   = finalPlayers;
+  renderPlayersBar(finalPlayers);
+  $('newBtn').style.display = '';
+  $('readyBtn').style.display = 'none';
+  showFinishOverlay(finalPlayers);
+  fireworks();
+  speak('Oyun bitti!');
+});
+
+socket.on('gameReset', ()=>{
+  gamePhase   = 'lobby';
+  drawnBalls  = [];
+  myTickets   = [];
+  myMarks     = {};
+  amSpectator = false;
+  isReady     = false;
+  players     = {};
+  $('mainBall').textContent = '?';
+  $('mainBall').className   = 'ball-3d idle';
+  $('drawRecent').innerHTML  = '';
+  $('scrollArea').innerHTML  = '<div id="emptyHint" style="text-align:center;color:var(--muted);font-size:12px;padding:30px 0;">Katılmak için aşağıdaki butona bas</div>';
+  $('playersBar').innerHTML  = '';
+  $('readyTxt').textContent  = '0/0';
+  $('readyBtn').className    = 'btn btn-ready';
+  $('readyBtn').textContent  = 'Hazırım!';
+  $('readyBtn').disabled     = true;
+  $('readyBtn').style.display = '';
+  $('joinBtn').style.display  = '';
+  $('newBtn').style.display   = 'none';
+  $('finishOverlay').classList.remove('show');
+  $('bonusBanner').classList.remove('show');
+  $('specBanner').classList.remove('show');
+  renderPhaseBadge('lobby');
+  addChat('🔄','Yeni oyun başlatıldı!',true);
+});
+
+socket.on('chatMsg', ({system, name, text, color})=>{
+  addChat(name||'🎮', text, system, color);
+});
+
+// ══════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════
+function openJoin(){ $('joinOverlay').style.display='flex'; }
+
+function pickTicket(n, el){
+  ticketCount = n;
+  document.querySelectorAll('.topt').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function doJoin(){
+  const name = $('nameInp').value.trim();
+  if(!name){ toast('⚠️ Ad gir!'); return; }
+  myName = name;
+  socket.emit('joinGame', { name, ticketCount });
+  $('joinOverlay').style.display = 'none';
+}
+
+function doReady(){
+  if(isReady) return;
+  isReady = true;
+  $('readyBtn').className   = 'btn btn-ready done';
+  $('readyBtn').textContent = '✓ Hazır';
+  socket.emit('ready');
+}
+
+function doNewGame(){ socket.emit('newGame'); }
+
+function doChat(){
+  const inp = $('chatInp');
+  const txt = inp.value.trim();
+  if(!txt||!myName) return;
+  socket.emit('chat', { name: myName, text: txt });
+  inp.value='';
+}
+
+function doMark(ti, num){
+  if(gamePhase!=='playing'){ toast('⏳ Oyun aktif değil'); return; }
+  if(amSpectator){ toast('👁️ İzleyicisin, taş koyamazsın'); return; }
+  if(!drawnBalls.includes(num)){ sfxError(); toast('🚫 Top henüz çekilmedi!'); shakeCell(ti,num); return; }
+  socket.emit('mark', { ti, num });
+  sfxMark();
+}
+
+// ══════════════════════════════════════════
+//  RENDER — BALL
+// ══════════════════════════════════════════
+function setBall(num, animate){
+  const b = $('mainBall');
+  b.textContent = num;
+  b.className   = 'ball-3d' + (animate?' pop':'');
+  if(animate) setTimeout(()=>b.classList.remove('pop'), 500);
+}
+
+function renderRecentBalls(balls){
+  const c = $('drawRecent');
+  c.innerHTML = '';
+  // show last 16
+  const show = balls.slice(-16);
+  show.forEach((n,i)=>{
+    const d = document.createElement('div');
+    d.className = 'mini-ball' + (i===show.length-1?' newest':'');
+    d.textContent = n;
+    c.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════
+//  RENDER — PLAYERS BAR
+// ══════════════════════════════════════════
+function renderPlayersBar(pls){
+  const bar = $('playersBar');
+  bar.innerHTML = '';
+  Object.entries(pls||{}).forEach(([sid,p])=>{
+    const chip = document.createElement('div');
+    let cls = 'p-chip';
+    if(p.spectator) cls += ' spectator';
+    if(p.rank===1)  cls += ' winner';
+    chip.className = cls;
+    const rankHtml = p.rank ? `<span class="p-rank">${p.rank}.</span>` : '';
+    chip.innerHTML =
+      `<div class="p-av" style="background:${p.color}">${esc(p.name.charAt(0).toUpperCase())}</div>`+
+      esc(p.name)+rankHtml;
+    bar.appendChild(chip);
+  });
+}
+
+// ══════════════════════════════════════════
+//  RENDER — TICKETS
+// ══════════════════════════════════════════
+function renderTickets(){
+  if(!myTickets.length) return;
+  const area = $('scrollArea');
+  area.innerHTML = '';
+
+  myTickets.forEach((ticket, ti)=>{
+    const tiStr  = String(ti);
+    const marks  = myMarks[tiStr] || [];
+
+    // detect winning rows
+    const winRows = new Set();
+    ticket.forEach((row, ri)=>{ if(row.every(n=>marks.includes(n))) winRows.add(ri); });
+    const hasWin = winRows.size > 0;
+
+    const card = document.createElement('div');
+    card.className = 'ticket-card' + (hasWin?' has-win':'');
+
+    const dotsHtml = ticket.map((_,ri)=>
+      `<div class="row-dot${winRows.has(ri)?' done':''}"></div>`
+    ).join('');
+
+    card.innerHTML =
+      `<div class="ticket-head">`+
+        `<div class="ticket-lbl">BİLET ${ti+1}</div>`+
+        `<div class="row-dots">${dotsHtml}</div>`+
+      `</div>`+
+      `<div class="ticket-grid" id="tg-${ti}"></div>`;
+
+    area.appendChild(card);
+
+    const grid = card.querySelector(`#tg-${ti}`);
+    ticket.forEach((row, ri)=>{
+      row.forEach(num=>{
+        const drawn  = drawnBalls.includes(num);
+        const marked = marks.includes(num);
+        const winR   = winRows.has(ri) && marked;
+
+        const cell = document.createElement('div');
+        cell.id    = `cell-${ti}-${num}`;
+        cell.className =
+          'cell' +
+          (winR    ? ' win-row' :
+           marked  ? ' marked'  :
+           drawn   ? ' drawable':
+                     ' locked');
+
+        if(marked){
+          cell.innerHTML = `<div class="stone stone-${ti%3}">${num}</div>`;
+        } else {
+          cell.textContent = num;
+        }
+
+        if(!amSpectator && (drawn || marked)){
+          cell.onclick = ()=>doMark(ti, num);
+        }
+        grid.appendChild(cell);
+      });
+    });
+
+    // if spectator overlay
+    if(amSpectator){
+      const ov = document.createElement('div');
+      ov.className = 'ticket-spectator-overlay';
+      ov.innerHTML = '<span>👁️</span><span style="font-size:10px">İzleyici</span>';
+      card.appendChild(ov);
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+//  SPECTATOR UI
+// ══════════════════════════════════════════
+function updateSpectatorUI(){
+  if(amSpectator){
+    $('specBanner').classList.add('show');
+    $('readyBtn').style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════
+//  BONUS BANNER
+// ══════════════════════════════════════════
+function showBonus(bonus){
+  if(!bonus || !bonus.label) return;
+  $('bonusTxt').textContent = bonus.emoji+' '+bonus.label+' — '+bonus.desc;
+  $('bonusBanner').classList.add('show');
+  setTimeout(()=>$('bonusBanner').classList.remove('show'), 5000);
+}
+
+// ══════════════════════════════════════════
+//  PHASE BADGE
+// ══════════════════════════════════════════
+function renderPhaseBadge(phase){
+  const b = $('phaseBadge');
+  b.className = 'phase-badge';
+  if(phase==='playing'){ b.textContent='Oynanıyor'; b.classList.add('playing'); }
+  else if(phase==='finished'){ b.textContent='Bitti'; b.classList.add('finished'); }
+  else b.textContent='Lobi';
+}
+
+// ══════════════════════════════════════════
+//  FINISH OVERLAY
+// ══════════════════════════════════════════
+function showFinishOverlay(pls){
+  const pod = $('podiumList');
+  pod.innerHTML = '<div class="podium-title">🏆 Sıralama</div>';
+  const sorted = Object.values(pls).filter(p=>p.rank!=null).sort((a,b)=>a.rank-b.rank);
+  sorted.forEach(p=>{
+    const row = document.createElement('div');
+    row.className = 'podium-row';
+    const cls = p.rank<=3 ? 'r'+p.rank : 'rn';
+    row.innerHTML =
+      `<div class="podium-num ${cls}">${p.rank}</div>`+
+      `<div class="podium-name">${esc(p.name)}</div>`;
+    pod.appendChild(row);
+  });
+  $('finishOverlay').classList.add('show');
+}
+
+// ══════════════════════════════════════════
+//  CHAT
+// ══════════════════════════════════════════
+function addChat(name, text, sys, color){
+  const c = $('chatMsgs');
+  const d = document.createElement('div');
+  d.className = 'chat-row'+(sys?' sys':'');
+  if(color) d.style.setProperty('--c', color);
+  d.innerHTML = `<span class="cn">${esc(name)}</span><span class="ct">${esc(text)}</span>`;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+// ══════════════════════════════════════════
+//  PARTICLES & FIREWORKS
+// ══════════════════════════════════════════
+function particles(el){
+  const r  = el.getBoundingClientRect();
+  const cx = r.left + r.width/2;
+  const cy = r.top  + r.height/2;
+  const colors=['#4361ee','#f72585','#06d6a0','#ffb703','#fb8500'];
+  for(let i=0;i<12;i++){
+    const p = document.createElement('div');
+    p.className='ptcl';
+    const ang = Math.random()*Math.PI*2;
+    const d   = 35+Math.random()*55;
+    p.style.cssText=`left:${cx}px;top:${cy}px;background:${colors[i%colors.length]};`+
+      `--tx:${(Math.cos(ang)*d).toFixed(1)}px;--ty:${(Math.sin(ang)*d).toFixed(1)}px;`+
+      `--dur:${(.35+Math.random()*.35).toFixed(2)}s;`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(), 800);
+  }
+}
+
+function fireworks(){
+  const cv  = $('fwCanvas');
+  const app = $('app');
+  cv.width  = app.offsetWidth;
+  cv.height = app.offsetHeight;
+  const ctx = cv.getContext('2d');
+  const fws = [];
+  for(let i=0;i<10;i++){
+    setTimeout(()=>{
+      fws.push({
+        x: Math.random()*cv.width,
+        y: 40+Math.random()*cv.height*.5,
+        parts: Array.from({length:40},()=>({
+          x:0,y:0,
+          vx:(Math.random()-.5)*9,vy:(Math.random()-.5)*9,
+          life:1,c:`hsl(${Math.random()*360},90%,55%)`
+        }))
+      });
+    }, i*350);
+  }
+  let raf;
+  function draw(){
+    ctx.fillStyle='rgba(240,244,255,.12)';ctx.fillRect(0,0,cv.width,cv.height);
+    let alive=false;
+    fws.forEach(fw=>{
+      fw.parts.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.vy+=.14; p.life-=.018;
+        if(p.life<=0) return;
+        alive=true;
+        ctx.beginPath();ctx.arc(fw.x+p.x,fw.y+p.y,3*p.life,0,Math.PI*2);
+        ctx.fillStyle=p.c;ctx.globalAlpha=p.life;ctx.fill();ctx.globalAlpha=1;
+      });
+    });
+    if(alive) raf=requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,cv.width,cv.height);
+  }
+  raf=requestAnimationFrame(draw);
+  setTimeout(()=>{cancelAnimationFrame(raf);ctx.clearRect(0,0,cv.width,cv.height);},7000);
+}
+
+// ══════════════════════════════════════════
+//  SHAKE
+// ══════════════════════════════════════════
+function shakeCell(ti, num){
+  const el = document.getElementById(`cell-${ti}-${num}`);
+  if(!el) return;
+  el.style.animation='shk .3s ease';
+  setTimeout(()=>el.style.animation='',400);
+}
+const shakeStyle = document.createElement('style');
+shakeStyle.textContent='@keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}';
+document.head.appendChild(shakeStyle);
+
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+let _tt;
+function toast(msg, dur=2600){
+  const t=$('toast');
+  clearTimeout(_tt);
+  t.textContent=msg;t.classList.add('show');
+  _tt=setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// ══════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Enter key on name input
+$('nameInp').addEventListener('keydown', e=>{ if(e.key==='Enter') doJoin(); });
+</script>
+</body>
+</html>
